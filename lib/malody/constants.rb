@@ -16,7 +16,8 @@ module Malody
         return unless self.constants.include?(value)
         1 << self.const_get(value)
       when Integer
-        return 1 << value
+        return if value < 0
+        1 << value
       end
     end
     

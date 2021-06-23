@@ -326,7 +326,7 @@ Style/NumericPredicate:
   Severity: warning
   Enabled: true
 Style/ParallelAssignment:
-  Enabled: true
+  Enabled: false
 Style/ParenthesesAroundCondition:
   AllowSafeAssignment: true
   Enabled: true
@@ -342,6 +342,8 @@ Style/RedundantInterpolation:
   Enabled: true
 Style/RedundantParentheses:
   Enabled: true
+Style/RedundantPercentQ:
+  Severity: info
 Style/RedundantReturn:
   Enabled: true
 Style/RedundantSelf:
