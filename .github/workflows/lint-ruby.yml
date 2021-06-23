@@ -1,0 +1,57 @@
+name: Validator
+on:
+  push:
+    branches: [ master ]
+jobs:
+  # JOB to run change detection
+  changes:
+    runs-on: ubuntu-latest
+    # Set job outputs to values from filter step
+    outputs:
+      ruby: ${{ steps.filter.outputs.ruby }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          ruby:
+            - 'lib/**.rb'
+  lint:
+    needs: changes
+    if: ${{ needs.changes.outputs.ruby == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: [ 2.7.x, 2.6.x, 2.5.x, 2.4.x ]
+    name: Publishing Document
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        bundler-cache: true
+        ruby-version: ${{ matrix.ruby-version }}
+    - name: Install Dependencies
+      run: bundle install
+    - name: Rubocop
+      run: rubocop
+  test:
+    needs: changes
+    if: ${{ needs.changes.outputs.ruby == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: [ 2.7.x, 2.6.x, 2.5.x, 2.4.x ]
+    name: Publishing Document
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: actions/setup-ruby@v1
+      with:
+        bundler-cache: true
+        ruby-version: ${{ matrix.ruby-version }}
+    - name: Install Dependencies
+      run: bundle install
+    - name: Test
+      run: rake test
