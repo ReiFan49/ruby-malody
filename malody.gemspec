@@ -12,11 +12,11 @@ Gem::Specification.new do |s|
   s.license       = "MIT"
   s.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
 
-  s.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
+  # s.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
 
   s.metadata["homepage_uri"] = s.homepage
   s.metadata["source_code_uri"] = s.homepage
-  # spec.metadata["changelog_uri"] = "im moody."
+  # s.metadata["changelog_uri"] = "im moody."
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
   s.executables   = s.files.grep(%r{^exe/}) { |f| File.basename(f) }
   s.require_paths = ["lib"]
   
-  s.add_development_dependency 'rubocop', '~> 0.93'
+  s.add_development_dependency 'rubocop', '~> 1.17'
   s.add_development_dependency "rake", ">= 12.0"
   s.add_development_dependency "minitest", "~> 5.0"
 end

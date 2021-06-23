@@ -17,7 +17,13 @@ jobs:
       with:
         filters: |
           ruby:
+            - '.rubocop.yml'
+            - 'bin/console'
             - 'lib/**.rb'
+            - 'test/**.rb'
+            - 'Gemfile'
+            - '*.gemspec'
+            
   lint:
     needs: changes
     if: ${{ (needs.changes.outputs.ruby == 'true') || (github.event_name == 'workflow_dispatch') }}
