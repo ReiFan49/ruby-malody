@@ -28,5 +28,5 @@ module Malody
       bits.reduce(0, :|)
     end
   end
-    
+  
 end

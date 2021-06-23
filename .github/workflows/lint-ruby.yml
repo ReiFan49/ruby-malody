@@ -1,5 +1,6 @@
 name: Validator
 on:
+  workflow_dispatch:
   push:
     branches: [ master ]
 jobs:
@@ -19,39 +20,39 @@ jobs:
             - 'lib/**.rb'
   lint:
     needs: changes
-    if: ${{ needs.changes.outputs.ruby == 'true' }}
+    if: ${{ (needs.changes.outputs.ruby == 'true') || (github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby-version: [ 2.7.x, 2.6.x, 2.5.x, 2.4.x ]
-    name: Publishing Document
+        ruby-version: [ 2.7, 2.6, 2.5, 2.4 ]
+    name: Linting ${{ matrix.ruby-version }}
     steps:
     - uses: actions/checkout@v2
     - name: Set up Ruby
-      uses: actions/setup-ruby@v1
+      uses: ruby/setup-ruby@v1
       with:
         bundler-cache: true
         ruby-version: ${{ matrix.ruby-version }}
     - name: Install Dependencies
       run: bundle install
     - name: Rubocop
-      run: rubocop
+      run: bundle exec rubocop
   test:
     needs: changes
-    if: ${{ needs.changes.outputs.ruby == 'true' }}
+    if: ${{ (needs.changes.outputs.ruby == 'true') || (github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        ruby-version: [ 2.7.x, 2.6.x, 2.5.x, 2.4.x ]
-    name: Publishing Document
+        ruby-version: [ 2.7, 2.6, 2.5, 2.4 ]
+    name: Testing ${{ matrix.ruby-version }}
     steps:
     - uses: actions/checkout@v2
     - name: Set up Ruby
-      uses: actions/setup-ruby@v1
+      uses: ruby/setup-ruby@v1
       with:
         bundler-cache: true
         ruby-version: ${{ matrix.ruby-version }}
     - name: Install Dependencies
       run: bundle install
     - name: Test
-      run: rake test
+      run: bundle exec rake test
