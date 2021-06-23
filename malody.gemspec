@@ -13,6 +13,7 @@ end unless defined?(Malody::VERSION)
 
 
 Gem::Specification.new do |s|
+  # rubocop:disable Gemspec/DuplicatedAssignment
   fn = (File.symlink?(__FILE__) ? File.readlink(__FILE__) : __FILE__)
   is_local = !fn.start_with?(File.join(Gem.dir,'specifications'))
   
@@ -35,6 +36,7 @@ Gem::Specification.new do |s|
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
+  # rubocop:disable Style/ConditionalAssignment
   if is_local then
     s.files = Dir["test/**/*.rb", "MIT-LICENSE", "Rakefile", "*.md"]
   else
@@ -42,6 +44,7 @@ Gem::Specification.new do |s|
       `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
     end
   end
+  # rubocop:enable Style/ConditionalAssignment
   s.bindir        = "exe"
   s.executables   = s.files.grep(%r{^exe/}) { |f| File.basename(f) }
   s.require_paths = ["lib"]
@@ -49,4 +52,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rubocop', '~> 1.17'
   s.add_development_dependency "rake", ">= 12.0"
   s.add_development_dependency "minitest", "~> 5.0"
+  # rubocop:enable Gemspec/DuplicatedAssignment
 end
