@@ -6,3 +6,4 @@ Failing to comply may result in takedown request due to stealing of property to 
 
 Chart Mirroring is ok, but claiming it as yours is a no. However, for all charts labeled by Rei_Fan49, or me; **strictly not allowed to be mirrored by anyone else, unless I gave the permission explicitly.** Mirroring the chart due to forking is not breaking the rules as it's intended to be testing materials.
 
+This does not mean any possible transformation into other chart format is allowed as well, that's still part of transforming someone's work into other format that yielding similar/exact experience towards the player.
