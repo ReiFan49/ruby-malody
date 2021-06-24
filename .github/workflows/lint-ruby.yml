@@ -28,9 +28,15 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.ruby == 'true') || (github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
+      fail-fast: false
       matrix:
         ruby-version: [ 2.7, 2.6, 2.5 ]
+        experimental: [ false ]
+        include:
+          - ruby-version: [ 3.0, 2.4 ]
+            experimental: true
     name: Linting ${{ matrix.ruby-version }}
     steps:
     - uses: actions/checkout@v2
@@ -47,9 +53,15 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.ruby == 'true') || (github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
+      fail-fast: false
       matrix:
         ruby-version: [ 2.7, 2.6, 2.5 ]
+        experimental: [ false ]
+        include:
+          - ruby-version: [ 3.0, 2.4 ]
+            experimental: true
     name: Testing ${{ matrix.ruby-version }}
     steps:
     - uses: actions/checkout@v2

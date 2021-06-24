@@ -10,6 +10,7 @@ module Malody
     Live  = 8
     
     # Obtain mode bit value
+    # @return [Integer]
     def self.get_bit(value)
       case value
       when Symbol
@@ -22,11 +23,21 @@ module Malody
     end
     
     # Obtain combined mode bit values
-    def self.get_modes(*values)
+    # @return [Integer]
+    def self.get_mode_value(*values)
       return if values.empty?
       bits = values.map do |value| self.get_bit value end.compact
       return if bits.empty?
       bits.reduce(0, :|)
+    end
+    
+    # Obtain supported mode from given bit values.
+    # @return [Array<Symbol>]
+    def self.get_modes(value)
+      self.constants.select do |mode|
+        mode_value = 1 << self.const_get(mode)
+        (value & mode_value).nonzero?
+      end
     end
   end
   
