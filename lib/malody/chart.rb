@@ -91,9 +91,12 @@ module Malody
         (self.b <=> other.b).nonzero? ||
           (Rational(self.n, self.d) <=> Rational(other.n, other.d))
       end
-      #
+      
+      # @return [Hash] JSON definition of the object
+      # @see #to_json
+      def to_h; to_json; end
       # @return [Hash]
-      def to_h
+      def to_json(*)
         {beat: [@b, @n, @d]}
       end
     end
@@ -135,12 +138,20 @@ module Malody
       def initialize(beat:, **kwargs)
         super(*beat)
       end
+      # Compare against other TimeMarkedEntry object.
+      # @return [Integer, nil]
+      def <=>(other)
+        return unless self.class <= CommandEntry
+        return if self.d.nil? || other.d.nil?
+        (self.b <=> other.b).nonzero? ||
+          (Rational(self.n, self.d) <=> Rational(other.n, other.d))
+      end
     end
     # class defining note object command entry
     class NoteEntry < CommandEntry
-      def initialize(**kwargs)
-        super(*beat)
-      end
+      #def initialize(**kwargs)
+      #  super(**kwargs)
+      #end
     end
     private_constant :AbstractClass
     private_constant :TimeMarkedEntry
@@ -236,8 +247,11 @@ module Malody
       # @abstract reverses the transformation from Malody Lib to Malody Chart Data.
       # @return [Hash] chart meta extra data.
       def extension_data; {}; end
+      # @return [Hash] JSON definition of the object
+      # @see #to_json
+      def to_h; to_json; end
       # @return [Hash] original format.
-      def to_h
+      def to_json
         {
           meta: {
             :$ver => @version, creator: @owner, background: @bg_file, version: @name,

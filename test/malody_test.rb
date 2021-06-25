@@ -83,6 +83,7 @@ class MalodyTest < Minitest::Test
       next unless defined_ids.include?(json.dig(:meta, :mode))
       chart_processed += 1
       chart = Malody::Chart.parse(json)
+      chart
     end
     refute_predicate chart_processed, :zero?, "No unsupported charts available to process."
   end
