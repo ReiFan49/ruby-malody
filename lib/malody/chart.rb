@@ -251,7 +251,7 @@ module Malody
       # @see #to_json
       def to_h; to_json; end
       # @return [Hash] original format.
-      def to_json
+      def to_json(*)
         {
           meta: {
             :$ver => @version, creator: @owner, background: @bg_file, version: @name,
