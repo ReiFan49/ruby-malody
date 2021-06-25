@@ -391,11 +391,11 @@ Style/TrailingCommaInArguments:
   Enabled: true
 Style/TrailingCommaInArrayLiteral:
   Severity: warning
-  EnforcedStyleForMultiline: comma
+  EnforcedStyleForMultiline: consistent_comma
   Enabled: true
 Style/TrailingCommaInHashLiteral:
   Severity: warning
-  EnforcedStyleForMultiline: comma
+  EnforcedStyleForMultiline: consistent_comma
   Enabled: true
 Style/TrailingUnderscoreVariable:
   Enabled: true

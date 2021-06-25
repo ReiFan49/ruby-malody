@@ -1,6 +1,15 @@
 require "test_helper"
+require 'pathname'
 
 class MalodyTest < Minitest::Test
+  def obtain_chart_files
+    # had to use something like this because
+    # glob will screw up if found any meta characters such as
+    # brackets.
+    base_dir = Pathname.new(__dir__).relative_path_from(Dir.pwd).to_s
+    Dir["#{base_dir}/files/**/*.{mc}"]
+  end
+  
   def test_that_it_has_a_version_number
     refute_nil ::Malody::VERSION
   end
@@ -44,5 +53,38 @@ class MalodyTest < Minitest::Test
       mode_sel2 = Set.new(::Malody::Mode.get_modes(mode_value))
       assert_equal mode_sel, mode_sel2, "Given mode value should return back to its own"
     end
+  end
+  
+  def test_undefined_modes
+    modes = Malody::Mode.constants
+    undefined_modes = modes - Malody::Chart.constants
+    undefined_ids = undefined_modes.map do |mode| Malody::Mode.const_get(mode) end
+    skip "All modes are defined properly. No need this test." if undefined_modes.empty?
+    chart_processed = 0
+    obtain_chart_files.each do |file|
+      json = JSON.parse(File.read(file), symbolize_names: true)
+      next unless undefined_ids.include?(json.dig(:meta, :mode))
+      chart_processed += 1
+      assert_raises NotImplementedError, "Mode #{json.dig(:meta, :mode)} shouldn't be implemented yet." do
+        Malody::Chart.parse(json)
+      end
+    end
+    skip "No unsupported charts available to process." if chart_processed.zero?
+  end
+  
+  def test_defined_modes
+    modes = Malody::Mode.constants
+    defined_modes = modes & Malody::Chart.constants
+    defined_ids = defined_modes.map do |mode| Malody::Mode.const_get(mode) end
+    refute_empty defined_modes, "No modes defined yet."
+    chart_processed = 0
+    obtain_chart_files.each do |file|
+      json = JSON.parse(File.read(file), symbolize_names: true)
+      next unless defined_ids.include?(json.dig(:meta, :mode))
+      chart_processed += 1
+      chart = Malody::Chart.parse(json)
+      p chart
+    end
+    refute_predicate chart_processed, :zero?, "No unsupported charts available to process."
   end
 end
