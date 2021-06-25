@@ -22,7 +22,7 @@ module Malody
           define_singleton_method :inherited do |subcls|
             subcls.instance_variable_set(:@_abstract, false)
           end
-          old_new = method(:new)
+          # old_new = method(:new)
           define_singleton_method :new do |*args, **kwargs, &block|
             fail TypeError, "Cannot instantiate from abstract class" if self.abstract?
             obj = self.allocate
@@ -55,6 +55,7 @@ module Malody
     end
     # @abstract A superclass of most time-related entry in Malody Chart Structure.
     class TimeMarkedEntry
+      include Comparable
       include FriendlyFormattedOutput
       extend AbstractClass
       # Initializes time-tied entry.
@@ -62,6 +63,7 @@ module Malody
       # @param n [Integer] defines the dividend of the beat divisor
       # @param d [Integer] defines the beat divisor.
       def initialize(b, n, d)
+        fail RangeError, "Denominator must be a positive integer." unless Integer === d && d.positive?
         @b, @n, @d = b, n, d
       end
       
@@ -80,6 +82,14 @@ module Malody
       # @return [Boolean]
       def ==(other)
         self.same_time?(other)
+      end
+      # Compare against other TimeMarkedEntry object.
+      # @return [Integer, nil]
+      def <=>(other)
+        return if self.class != other.class
+        return if self.d.nil? || other.d.nil?
+        (self.b <=> other.b).nonzero? ||
+          (Rational(self.n, self.d) <=> Rational(other.n, other.d))
       end
       #
       # @return [Hash]
@@ -114,9 +124,23 @@ module Malody
         super.update({bpm: [@bpm, '.3f']})
       end
     end
+    # class defining effect given to the chart
     class EffectEntry < TimeMarkedEntry
+      def initialize(beat:, **kwargs)
+        super(*beat)
+      end
     end
-    class NoteEntry < TimeMarkedEntry
+    # class defining basic of command entry
+    class CommandEntry < TimeMarkedEntry
+      def initialize(beat:, **kwargs)
+        super(*beat)
+      end
+    end
+    # class defining note object command entry
+    class NoteEntry < CommandEntry
+      def initialize(**kwargs)
+        super(*beat)
+      end
     end
     private_constant :AbstractClass
     private_constant :TimeMarkedEntry
@@ -134,26 +158,79 @@ module Malody
       # @param kwargs [Hash<Symbol, Object>] chart data type.
       # @raise [TypeError] calling from this class directly.
       def initialize(**kwargs)
+        initialize_meta(**kwargs[:meta])
+        initialize_timing(kwargs[:timing])
+        initialize_effect(kwargs[:effect])
+        initialize_object(kwargs[:object])
+        initialize_extra(**kwargs[:extra_meta])
+        @dummy = kwargs[:extra_dummy]
+        [@timings, @effects, @objects].each(&:sort!)
+      end
+      # Initializes chart header
+      # @return [void]
+      def initialize_meta(**kwargs)
+        key_violation = {miss:[], diff:[]}
         [
           [Integer, %i(version preview set_id chart_id time)],
           [String, %i(creator bg name)],
         ].each do |c, v|
           v.each do |x|
-            fail KeyError, "key #{String(x).to_sym} is not defined" unless kwargs.key?(x)
+            next key_violation[:miss].push(x) unless kwargs.key?(x)
             y = kwargs[x]
             next if c === y
-            fail TypeError, "expected key #{String(x).to_sym} a #{c}, given #{y.class}"
+            key_violation[:diff].push([x,c,y.class])
           end
+        end
+        key_violation[:miss].tap do |kv|
+          next if kv.empty?
+          fail KeyError, "key #{kv.join(', ')} is not defined"
+        end
+        key_violation[:diff].tap do |kv|
+          next if kv.empty?
+          err_str = kv.group_by do |e| e[1] end.map do |c, el|
+            out_str = el.map do |k, c, cx| "%s (given %s)" % [k, cx] end.join(', ')
+            "on %s, expected %s" % [out_str, c]
+          end.join('; ')
+          fail TypeError, err_str
         end
         @version, @owner, @bg_file, @name, @preview_time = kwargs.values_at(:version, :creator, :bg, :name, :preview)
         @set_id, @chart_id = kwargs.values_at(:set_id, :chart_id)
         @time = Time.at(kwargs[:time])
         @song = SongMetadata.new(*kwargs[:song].values_at(:artist, :title, :artist_unicode, :title_unicode))
-        @dummy = kwargs[:extra_dummy]
-        initialize_extra(**kwargs[:extra_meta])
+      end
+      # Initializes chart timing
+      # @return [void]
+      def initialize_timing(timings)
+        @timings = []
+        timings.each do |obj|
+          @timings << TimeEntry.new(obj[:beat], obj[:bpm])
+        end
+      end
+      # Initializes chart effects
+      # @return [void]
+      def initialize_effect(effects)
+        @effects = []
+        effects.each do |obj|
+          @effects << self.class.timing_class.new(**obj)
+        end
+      end
+      # Initializes chart objects
+      # @return [void]
+      def initialize_object(objects)
+        @objects = []
+        objects.each do |obj|
+          # {"beat":[0,0,1],"sound":"hiska13.ogg","vol":100,"offset":211,"type":1}
+          if obj.key?(:sound) && obj.key?(:offset) then
+            @objects.push CommandEntry.new(**obj)
+          else
+            @objects.push self.class.note_class.new(**obj)
+          end
+        end
       end
       # @abstract defines method to be overriden for initialization
       abstract_method :initialize_extra
+      public
+      
       # @abstract defines given class mode ID. only need to be defined under respective sublcass.
       abstract_method :mode
       # @abstract reverses the transformation from Malody Lib to Malody Chart Data.
@@ -174,8 +251,8 @@ module Malody
         }
       end
       class << self
-        def timing_effect_class; EffectEntry; end
-        def note_object_class; NoteEntry; end
+        def timing_class; EffectEntry; end
+        def note_class; NoteEntry; end
       end
     end
     # Key mode namespace definition of library.
@@ -195,8 +272,8 @@ module Malody
         def extension_data; {column: @keys}; end
         
         class << self
-          def timing_effect_class; Effect; end
-          def note_object_class; Note; end
+          def timing_class; Effect; end
+          def note_class; Note; end
         end
       end
       # Key Effect Data
@@ -205,6 +282,10 @@ module Malody
       # Key Note Data
       class Note < NoteEntry
       end
+    end
+    ObjectSpace.each_object(Class) do |c|
+      next unless c <= Base
+      c.send(:private, *c.instance_methods.select do |m| String(m).start_with?('initialize_') end)
     end
     # @overload load(io)
     #   Loads given data to be parsed by Malody Chart Parser.
@@ -241,12 +322,13 @@ module Malody
       sid, cid = json.dig(:meta, :song, :id), json.dig(:meta, :id)
       mapper = {
         meta: {
-          version: :$ver, creator: :creator, bg: :background, name: :version, time: :time,
-          preview: :preview, extra_meta: :mode_ext,
+          version: :$ver, creator: :creator, bg: :background,
+          name: :version, time: :time, preview: :preview,
         },
         'meta.song': {'song.artist': :artist, 'song.artist_unicode': :artistorg, 'song.title': :title, 'song.title_unicode': :titleorg},
       }
-      m = {set_id: sid, chart_id: cid}
+      me = {set_id: sid, chart_id: cid}
+      ma = {meta: me, timing: [], effect: [], object: [], extra_meta: nil, extra_dummy: []}
       mapper.each do |k, ct|
         kfi = []
         if String(k).include?('.') then
@@ -254,14 +336,8 @@ module Malody
         else
           kfi.push(k)
         end
-        m[kfi.first] = ch = {}
-        if kfi.length > 1 && m.dig(*kfi[0...-1]).nil?
-          kfi.size.times do |i|
-            ch[kfi[i]] ||= {}
-            ch = ch[kfi[i]]
-          end
-        end
-        ch = json.dig(*kfi)
+        kfi.shift
+        ch = kfi.empty? ? j_meta : j_meta.dig(*kfi)
         ct.each do |tk, fk|
           tkfi = []
           if String(tk).include?('.') then
@@ -269,7 +345,7 @@ module Malody
           else
             tkfi.push(tk)
           end
-          cm = m
+          cm = me
           while tkfi.size > 1
             ntk = tkfi.shift
             cm[ntk] ||= {}
@@ -278,9 +354,12 @@ module Malody
           cm[tkfi.last] = ch[fk]
         end
       end
-      m[:extra_dummy] = json[:extra]
-      p m
-      ns::Data.new(**m)
+      ma[:timing] = j_time
+      ma[:effect] = j_eff
+      ma[:object] = j_note
+      ma[:extra_meta] = json.dig(:meta,:mode_ext)
+      ma[:extra_dummy] = j_editor
+      ns::Data.new(**ma)
     end
   end
 end

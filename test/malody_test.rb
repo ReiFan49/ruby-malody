@@ -6,7 +6,7 @@ class MalodyTest < Minitest::Test
     # had to use something like this because
     # glob will screw up if found any meta characters such as
     # brackets.
-    base_dir = Pathname.new(__dir__).relative_path_from(Dir.pwd).to_s
+    base_dir = Pathname.new(__dir__).relative_path_from(Pathname.new(Dir.pwd)).to_s
     Dir["#{base_dir}/files/**/*.{mc}"]
   end
   
@@ -83,7 +83,6 @@ class MalodyTest < Minitest::Test
       next unless defined_ids.include?(json.dig(:meta, :mode))
       chart_processed += 1
       chart = Malody::Chart.parse(json)
-      p chart
     end
     refute_predicate chart_processed, :zero?, "No unsupported charts available to process."
   end
