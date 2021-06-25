@@ -93,10 +93,10 @@ module Malody
       end
       
       # @return [Hash] JSON definition of the object
-      # @see #to_json
-      def to_h; to_json; end
+      # @see #as_json
+      def to_h; as_json; end
       # @return [Hash]
-      def to_json(*)
+      def as_json(*)
         {beat: [@b, @n, @d]}
       end
     end
@@ -131,12 +131,20 @@ module Malody
     class EffectEntry < TimeMarkedEntry
       def initialize(beat:, **kwargs)
         super(*beat)
+        initialize_extra(**kwargs)
+      end
+      # @return [void]
+      def initialize_extra(**kwargs)
       end
     end
     # class defining basic of command entry
     class CommandEntry < TimeMarkedEntry
       def initialize(beat:, **kwargs)
         super(*beat)
+        initialize_extra(**kwargs)
+      end
+      # @return [void]
+      def initialize_extra(**kwargs)
       end
       # Compare against other TimeMarkedEntry object.
       # @return [Integer, nil]
@@ -146,6 +154,14 @@ module Malody
         (self.b <=> other.b).nonzero? ||
           (Rational(self.n, self.d) <=> Rational(other.n, other.d))
       end
+    end
+    # Interface for commands that supports column entry.
+    module CommandColumnSupport
+      def initialize_extra(**kwargs)
+        super
+        @column = kwargs[:delete]
+      end
+      attr_reader :column
     end
     # class defining note object command entry
     class NoteEntry < CommandEntry
@@ -162,6 +178,7 @@ module Malody
         super
         @bar_offset = extra[:bar_begin]
       end
+      def extension_data; super.update({bar_begin: @bar_offset}) end
     end
     # @abstract A superclass that defines basic of Malody Charts.
     class Base
@@ -248,19 +265,19 @@ module Malody
       # @return [Hash] chart meta extra data.
       def extension_data; {}; end
       # @return [Hash] JSON definition of the object
-      # @see #to_json
-      def to_h; to_json; end
+      # @see #as_json
+      def to_h; as_json; end
       # @return [Hash] original format.
-      def to_json(*)
+      def as_json(*)
         {
           meta: {
             :$ver => @version, creator: @owner, background: @bg_file, version: @name,
             preview: @preview_time, id: @chart_id, mode: self.mode, time: @time.to_i,
             song: @song.convert_to_hash(@set_id), mode_ext: self.extension_data,
           },
-          time: [],
-          effect: [],
-          note: [],
+          time: @timings,
+          effect: @effects,
+          note: @objects,
           extra: @dummy,
         }
       end
@@ -283,7 +300,7 @@ module Malody
         def mode; Mode::Key end
         attr_reader :keys
         
-        def extension_data; {column: @keys}; end
+        def extension_data; super.update({column: @keys}); end
         
         class << self
           def timing_class; Effect; end
@@ -295,6 +312,7 @@ module Malody
       end
       # Key Note Data
       class Note < NoteEntry
+        include CommandColumnSupport
       end
     end
     ObjectSpace.each_object(Class) do |c|
